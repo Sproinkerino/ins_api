@@ -1,37 +1,65 @@
-from django.shortcuts import render
+import json
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
+from .IlpAdvisor import ChatSession, ILPAdvisor
 
-# Create your views here.
+# one advisor instance for embedding/QA
+advisor = ILPAdvisor()
 
-def process_chat_message(message: str) -> str:
+@api_view(["POST"])
+def chat(request):
     """
-    Dummy function to process chat messages.
-    In a real application, this is where you'd put your chatbot logic.
+    Stateless chat endpoint expecting:
+      - user_id:     string
+      - session:     object|null  (the last state)
+      - message:     string|null  (the user's latest reply)
     """
-    return f"Received your message: {message}"
+    payload    = request.data
+    user_id    = payload.get("user_id")
+    sess_state = payload.get("session")
+    user_msg   = payload.get("message")
 
-@api_view(['POST'])
-def chat_endpoint(request):
-    """
-    API endpoint that accepts chat messages and returns responses.
-    """
-    try:
-        message = request.data.get('message', '')
-        if not message:
-            return Response(
-                {'error': 'Message is required'}, 
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        # Process the message
-        response = process_chat_message(message)
-        
-        return Response({'response': response})
-    
-    except Exception as e:
+    if not user_id:
         return Response(
-            {'error': str(e)}, 
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            {"detail": "Missing required field: user_id"},
+            status=status.HTTP_400_BAD_REQUEST
         )
+
+    # 1) Hydrate or start new ChatSession
+    if sess_state is None:
+        cs = ChatSession(advisor.REQUIRED_FIELDS, advisor.llm)
+        assistant_msg = cs.start_chat()
+        done = False
+    else:
+        cs = ChatSession(advisor.REQUIRED_FIELDS, advisor.llm)
+        # restore previous state
+        cs.answers        = sess_state["answers"]
+        cs.follow_ups     = sess_state["follow_ups"]
+        cs.history        = sess_state.get("history", [])
+        cs.last_question  = sess_state.get("last_question")
+        # apply the user's latest message
+        cs.update_answers(user_msg, advisor.extract_fields)
+        missing = cs.missing_fields()
+        if not missing:
+            assistant_msg = None
+            done = True
+        else:
+            assistant_msg = cs.llm_generate_question(missing[:1])
+            done = False
+
+    # 2) Build next-response state
+    response_state = {
+        "answers":       cs.answers,
+        "follow_ups":    cs.follow_ups,
+        "history":       cs.history,
+        "last_question": cs.last_question
+    }
+
+    return Response({
+        "user_id":           user_id,
+        "session":           response_state,
+        "assistant_message": assistant_msg,
+        "missing_fields":    [] if done else cs.missing_fields(),
+        "done":              done,
+    })
