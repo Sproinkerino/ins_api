@@ -30,6 +30,5 @@ while True:
     print(data)
     session = data.get("session")
     if data.get("done"):
-        
         print("Chat complete! All required information collected.")
         break
