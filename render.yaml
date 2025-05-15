@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: chatbot-api
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn chatbot_api.wsgi:application
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.0
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DJANGO_DEBUG
+        value: false 
