@@ -4,10 +4,10 @@ from .settings import *
 DEBUG = True
 
 # Update with your DigitalOcean server IP or domain
-ALLOWED_HOSTS = ['165.22.49.143', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['165.22.49.143', 'localhost', '127.0.0.1', 'www.duelingdata.com']
 
 # Update CSRF settings
-CSRF_TRUSTED_ORIGINS = ['http://165.22.49.143:8080']
+CSRF_TRUSTED_ORIGINS = ['http://165.22.49.143:8080', 'https://www.duelingdata.com']
 
 # Temporarily disable security settings for troubleshooting
 SECURE_SSL_REDIRECT = False
