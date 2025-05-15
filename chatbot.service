@@ -9,7 +9,9 @@ WorkingDirectory=/var/www/chatbot_api
 Environment="PATH=/var/www/chatbot_api/venv/bin"
 Environment="DJANGO_SETTINGS_MODULE=chatbot_api.production_settings"
 Environment="DJANGO_SECRET_KEY=your-secret-key-here"
-ExecStart=/var/www/chatbot_api/venv/bin/gunicorn --config /var/www/chatbot_api/gunicorn_config.py chatbot_api.wsgi:application
+ExecStart=/var/www/chatbot_api/venv/bin/gunicorn --workers 3 --bind 0.0.0.0:8000 --log-level debug --access-logfile /var/log/gunicorn/access.log --error-logfile /var/log/gunicorn/error.log chatbot_api.wsgi:application
+Restart=always
+RestartSec=3
 
 [Install]
 WantedBy=multi-user.target 
