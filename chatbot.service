@@ -1,0 +1,15 @@
+[Unit]
+Description=Chatbot API Django Application
+After=network.target
+
+[Service]
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/chatbot_api
+Environment="PATH=/var/www/chatbot_api/venv/bin"
+Environment="DJANGO_SETTINGS_MODULE=chatbot_api.production_settings"
+Environment="DJANGO_SECRET_KEY=your-secret-key-here"
+ExecStart=/var/www/chatbot_api/venv/bin/gunicorn --config /var/www/chatbot_api/gunicorn_config.py chatbot_api.wsgi:application
+
+[Install]
+WantedBy=multi-user.target 
