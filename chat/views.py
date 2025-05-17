@@ -46,7 +46,12 @@ def chat(request):
             done = True
         else:
             assistant_msg = cs.llm_generate_question(missing[:1])
-            done = False
+            if assistant_msg is None:
+                # If we can't generate a question, mark as done and provide final message
+                assistant_msg = "I understand you're unsure about some details. That's okay! We can proceed with what we know."
+                done = True
+            else:
+                done = False
 
     # 2) Build next-response state
     response_state = {

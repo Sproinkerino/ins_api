@@ -39,7 +39,7 @@ FIELD_DESCRIPTIONS = {
     "amount_paid": "the total sum you have paid into your ILP so far",
     "payment_amount": "the amount you pay each period",
     "payment_frequency": "how often you make those payments (e.g., monthly or yearly)",
-    "remaining_duration": "the remaining time (in years or months) you have left to pay",
+    "remaining_duration": "the remaining time (in years or months) you have left to pay for the ILP plan",
     "plan_name": "the exact name of your current ILP plan"
 }
 
@@ -74,12 +74,18 @@ class ChatSession:
     def update_answers(self, raw_message: str, extractor) -> None:
         """
         Phase 4.1: Parse message using both last assistant question and raw user reply.
+        If a field has been asked once (follow_up = 1) and still no valid answer, mark as unsure.
         """
         parsed = extractor(self.last_question, raw_message)
         self.history.append({'assistant': self.last_question, 'user': raw_message, 'parsed': parsed})
+        
+        # Process each field
         for field in self.required_fields:
             if parsed.get(field) and parsed[field].strip().lower() != 'unsure':
                 self.answers[field] = parsed[field].strip()
+            elif self.follow_ups[field] >= 1 and not self.answers[field]:
+                # If we've already asked once and still no valid answer, mark as unsure
+                self.answers[field] = 'unsure'
 
     def missing_fields(self) -> list:
         """
@@ -98,14 +104,15 @@ class ChatSession:
         if self.follow_ups[field] >= 1:
             self.answers[field] = 'unsure'
             self.last_question = None
-            return None
+            return "I understand you're unsure about this detail. Let's move on to other information."
+            
         self.follow_ups[field] += 1
         description = FIELD_DESCRIPTIONS.get(field, field)
         prompt = (
             f"You are a knowledgeable financial advisor. You're collecting KYC data and need to request {description}. "
-            f"Please include why this information helps personalize advice. "
             f"For example: 'To tailor my recommendation, could you share {description}?' "
             f"If the user doesn't know, they can reply with 'unsure'."
+            f"format the response nicely with html tags."
         )
         self.last_question = prompt
         return self.llm.predict(prompt)
