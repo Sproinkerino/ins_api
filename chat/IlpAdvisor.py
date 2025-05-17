@@ -112,7 +112,8 @@ class ChatSession:
             f"You are a knowledgeable financial advisor. You're collecting KYC data and need to request {description}. "
             f"For example: 'To tailor my recommendation, could you share {description}?' "
             f"If the user doesn't know, they can reply with 'unsure'."
-            f"format the response nicely with \n."
+            f"All text will be sent to an api and sent to the user. Please format the response nicely with \n."
+            # f"format the response nicely with \n."
         )
         self.last_question = prompt
         return self.llm.predict(prompt)
